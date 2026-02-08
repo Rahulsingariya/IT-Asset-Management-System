@@ -1,10 +1,3 @@
-"""
-IT Asset Management System v2.1.1
-✅ FIXED: DateTime comparison error (Line 246)
-✅ ADDED: Full Settings page functionality
-Author: Professional IT Solutions | Date: Feb 2026
-"""
-
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -18,13 +11,9 @@ from typing import Dict, List, Optional, Tuple
 import logging
 from pathlib import Path
 
-# Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# =====================================================
-# ENTERPRISE CONFIGURATION
-# =====================================================
 class Config:
     ASSETS_FILE = "assets.csv"
     USERS_FILE = "users.json"
@@ -36,13 +25,9 @@ class Config:
     ]
     SUPPORTED_STATUSES = ["Available", "Assigned", "Repair", "Disposed", "Archived"]
 
-# Initialize config
 config = Config()
 
-# =====================================================
-# UTILITY FUNCTIONS (ENHANCED)
-# =====================================================
-@st.cache_data(ttl=300)  # 5 min cache
+@st.cache_data(ttl=300)  
 def hash_password(password: str) -> str:
     """Secure password hashing with salt simulation."""
     return hashlib.sha256(f"itsm_salt_{password}".encode()).hexdigest()
@@ -99,13 +84,11 @@ def load_assets() -> pd.DataFrame:
     try:
         df = pd.read_csv(config.ASSETS_FILE)
         
-        # Date column validation
         date_cols = ["Purchase Date", "Warranty Expiry", "Created Date", "Last Updated"]
         for col in date_cols:
             if col in df.columns:
                 df[col] = pd.to_datetime(df[col], errors='coerce')
         
-        # Fill NaN values
         df = df.fillna("")
         df = df.astype({"Cost": "float64"}, errors='ignore')
         
@@ -131,10 +114,7 @@ def save_assets(df: pd.DataFrame):
     except Exception as e:
         st.error(f"Save failed: {e}")
         logger.error(f"Save error: {e}")
-
-# =====================================================
-# ENHANCED AUTHENTICATION
-# =====================================================
+        
 def render_login_page():
     """Enterprise-grade login interface."""
     st.markdown("""
@@ -154,7 +134,6 @@ def render_login_page():
 
     st.markdown("---")
     
-    # Login form
     with st.form("enterprise_login", clear_on_submit=True):
         col1, col2 = st.columns([1, 3])
         
@@ -193,9 +172,6 @@ def render_logout():
         del st.session_state[key]
     st.rerun()
 
-# =====================================================
-# ENTERPRISE NAVIGATION
-# =====================================================
 def render_sidebar(df: pd.DataFrame):
     """Professional enterprise sidebar."""
     st.sidebar.markdown(f"""
@@ -203,7 +179,6 @@ def render_sidebar(df: pd.DataFrame):
     **v{config.APP_VERSION}**
     """)
     
-    # Enterprise metrics
     if not df.empty:
         st.sidebar.markdown("### 📊 KPIs")
         total = len(df)
@@ -214,7 +189,6 @@ def render_sidebar(df: pd.DataFrame):
     
     st.sidebar.markdown("---")
     
-    # Main navigation
     menu_options = ["📊 Dashboard", "➕ Add Asset", "🛠️ Manage", "📈 Reports", "⚙️ Settings"]
     selected = st.sidebar.selectbox("Navigation", menu_options, 
                                   key="enterprise_menu")
@@ -225,9 +199,6 @@ def render_sidebar(df: pd.DataFrame):
     if st.sidebar.button("🚪 Logout", use_container_width=True):
         render_logout()
 
-# =====================================================
-# ENHANCED DASHBOARD (DATE COMPARISON FIXED)
-# =====================================================
 def render_dashboard(df: pd.DataFrame):
     """Executive dashboard with FIXED metrics."""
     st.markdown("# 📊 Executive Dashboard")
@@ -237,7 +208,6 @@ def render_dashboard(df: pd.DataFrame):
         st.info("👆 Add your first asset to see analytics!")
         return
     
-    # Fixed KPI Cards - CORRECT ORDER: label, value, delta
     col1, col2, col3, col4, col5 = st.columns(5)
     
     total = len(df)
@@ -245,7 +215,6 @@ def render_dashboard(df: pd.DataFrame):
     available = len(df[df["Status"] == "Available"])
     repair = len(df[df["Status"] == "Repair"])
     
-    # ✅ FIXED: Convert date to pandas datetime for comparison
     threshold_date = pd.to_datetime(date.today() + timedelta(days=90))
     expiring = len(df[df["Warranty Expiry"] < threshold_date].dropna(subset=["Warranty Expiry"]))
     
@@ -260,7 +229,6 @@ def render_dashboard(df: pd.DataFrame):
     with col5:
         st.metric(label="Expiring Soon", value=expiring)
     
-    # Advanced Charts
     col1, col2 = st.columns(2)
     
     with col1:
@@ -280,9 +248,6 @@ def render_dashboard(df: pd.DataFrame):
                         color_continuous_scale="Viridis")
         st.plotly_chart(fig_bar, use_container_width=True)
 
-# =====================================================
-# PROFESSIONAL ASSET MANAGEMENT
-# =====================================================
 def render_add_asset(df: pd.DataFrame):
     st.markdown("# ➕ Register New Asset")
     
@@ -311,7 +276,6 @@ def render_add_asset(df: pd.DataFrame):
         submitted = st.form_submit_button("✅ Register Asset", type="primary")
     
     if submitted:
-        # Enterprise validation
         errors = []
         if not all([asset_id.strip(), name.strip(), brand.strip(), category]):
             errors.append("Required fields missing")
@@ -347,21 +311,16 @@ def render_add_asset(df: pd.DataFrame):
             st.success("🎉 Asset registered successfully!")
             st.balloons()
 
-# =====================================================
-# ENHANCED MANAGE & REPORTS
-# =====================================================
 def render_manage_assets(df: pd.DataFrame):
     """Enhanced asset management with filters."""
     st.markdown("# 🛠️ Asset Management")
     
-    # Filters
     col1, col2 = st.columns(2)
     with col1:
         search = st.text_input("🔍 Search Assets")
     with col2:
         status_filter = st.selectbox("Filter Status", ["All"] + list(config.SUPPORTED_STATUSES))
     
-    # Apply filters
     filtered_df = df.copy()
     if search:
         filtered_df = filtered_df[filtered_df.astype(str).apply(lambda row: search.lower() in row.str.lower().str.cat(sep=' '), axis=1)]
@@ -385,10 +344,7 @@ def render_reports(df: pd.DataFrame):
             f"it-assets-report-{date.today().strftime('%Y%m%d')}.csv",
             "text/csv"
         )
-
-# =====================================================
-# FULL SETTINGS PAGE (NEW!)
-# =====================================================
+        
 def render_settings(df: pd.DataFrame):
     """Complete settings management panel."""
     st.markdown("# ⚙️ System Settings & Administration")
@@ -434,7 +390,7 @@ def render_settings(df: pd.DataFrame):
         
         col1, col2 = st.columns(2)
         with col1:
-            # Backup
+         
             csv_backup = df.to_csv(index=False).encode('utf-8')
             st.download_button(
                 "💾 Download Backup",
@@ -444,7 +400,7 @@ def render_settings(df: pd.DataFrame):
             )
         
         with col2:
-            # Clear data warning
+       
             st.warning("⚠️ DANGER ZONE - Clear All Data")
             if st.button("🗑️ Clear All Assets", type="secondary"):
                 if st.button("⚠️ CONFIRM - Delete Everything", type="primary"):
@@ -465,23 +421,20 @@ def render_settings(df: pd.DataFrame):
             "Status": "🟢 Production Ready"
         })
 
-# =====================================================
-# MAIN APPLICATION
-# =====================================================
 def main():
     init_storage()
     
-    # Auth check
+
     if "logged_in" not in st.session_state or not st.session_state.logged_in:
         render_login_page()
         st.stop()
     
     df = load_assets()
     
-    # Header
+
     st.markdown(f"👋 Welcome, **{st.session_state.username.title()}** | 💼 IT Asset Manager Pro")
     
-    # Navigation & Content
+
     render_sidebar(df)
     menu_map = {
         "📊 Dashboard": render_dashboard,
@@ -501,3 +454,4 @@ if __name__ == "__main__":
         initial_sidebar_state="expanded"
     )
     main()
+
